@@ -35,7 +35,6 @@ num_states = length(x_vector); % number of discrete-time states in trajectory
 mean = 0;   % mean
 t = t_vector;
 %%
-
 % Deliverable 3
 clc
 
@@ -53,7 +52,8 @@ P_Measured = [1 0; 0 0.0001];    %std_dev*std_dev = 0.1*0.1
 Q = [1*10^-8, 0; 0, 0];      %process noise covariance matrix 
 R = 0.01;       %Sensor noise covariance matrix
 H = 1;
-H_k = [1;1];
+H_k = [1 0; 0 1];
+w = 0.01*randn(1001); %Q
 
 % Storing calculated values in these vectors for plotting
 XX = zeros(1,1001);
@@ -62,24 +62,18 @@ xx_predicted = zeros(2,1001);
 xx = zeros(2,1001);
 PP = zeros(2,2002);
 yy = zeros(2,1001);
-for t=1:1
-   %simulating the System
-    w = 0.01*randn(1); %Q
-    X = X + u*dt + w; % New Current State   
+for t=1:1001
+   %simulating the System    
+    X = X + u*dt + w(t); % New Current State   
     Z_K = [0.1; X]; % Measurements 
-    
-   % Z_K = H_k(t);
+
    %Prediction Step
     x_predicted = A*x_measured;         %predicting the new state (mean)
     P_Predicted = A * P_Measured * A' + Q;    %predicting the new uncertainity (covariance)
     
-   %Update Step
-    E = H_k*P_Predicted*H_k';     %Covariance of ^ expectation
-    z = Z_K -  H_k*x_predicted;      %innovation: diff between the expectation and real sensor measurement
-    Z = R + E;      %Covariance of ^ - sum of uncertainities of expectation and real measurement
-    K = P_Predicted*H_k' * Z^-1;
-    
-    x_measured = x_predicted + K*z; %final corrected state
+   %Update Step  
+    K = P_Predicted*H_k'*inv(H_k*P_Predicted*H_k' + R);   
+    x_measured = x_predicted + K*(Z_K -  H_k*x_predicted); %final corrected state
     P_Measured = P_Predicted - K * H_k* P_Predicted;       %uncertainity in corrected state
     
    %Saving the outputs
@@ -89,11 +83,11 @@ for t=1:1
     PP(:,t*2+1:t*2+2) = P_Measured;
     XX(t) = X;
     tt(t) = t;
-    yy(:,t*2+1) = Z_K;
+    yy(:,t) = Z_K;
 end
 
 figure
-plot(tt,XX,tt,xx)
+plot(tt,XX,tt,xx(2,:))
 title(' 1D Kalman Filter')
 legend('Ground Truth','Measured State')
 xlabel('Time')
