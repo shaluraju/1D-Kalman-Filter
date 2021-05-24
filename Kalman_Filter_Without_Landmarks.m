@@ -62,28 +62,35 @@ xx_predicted = zeros(2,1001);
 xx = zeros(2,1001);
 PP = zeros(2,2002);
 yy = zeros(2,1001);
-for t=1:1001
-   %simulating the System    
-    X = X + u*dt + w(t); % New Current State   
-    Z_K = [0.1; X]; % Measurements 
+AE = zeros(1,1000);
+MAE = zeros(1,1000);
+for i = 1:1000
+    for t=1:1001
+        %simulating the System
+        X = X + u*dt + w(t); % New Current State
+        Z_K = [0.1; X]; % Measurements
+        
+        %Prediction Step
+        x_predicted = A*x_measured;         %predicting the new state (mean)
+        P_Predicted = A * P_Measured * A' + Q;    %predicting the new uncertainity (covariance)
+        
+        %Update Step
+        K = P_Predicted*H_k'*inv(H_k*P_Predicted*H_k' + R);
+        x_measured = x_predicted + K*(Z_K -  H_k*x_predicted); %final corrected state
+        P_Measured = P_Predicted - K * H_k* P_Predicted;       %uncertainity in corrected state
+        
+        %Saving the outputs
+        
+        xx_predicted(:,t) = x_predicted;
+        xx(:,t) = x_measured;
+        PP(:,t*2+1:t*2+2) = P_Measured;
+        XX(t) = X;
+        tt(t) = t;
+        yy(:,t) = Z_K;
+        AE(t) = abs(x_vector(t)-xx_predicted(2,t));
+    end
+    MAE(i) = sum(AE)/numel(AE);
 
-   %Prediction Step
-    x_predicted = A*x_measured;         %predicting the new state (mean)
-    P_Predicted = A * P_Measured * A' + Q;    %predicting the new uncertainity (covariance)
-    
-   %Update Step  
-    K = P_Predicted*H_k'*inv(H_k*P_Predicted*H_k' + R);   
-    x_measured = x_predicted + K*(Z_K -  H_k*x_predicted); %final corrected state
-    P_Measured = P_Predicted - K * H_k* P_Predicted;       %uncertainity in corrected state
-    
-   %Saving the outputs
-   
-    xx_predicted(:,t) = x_predicted;
-    xx(:,t) = x_measured;
-    PP(:,t*2+1:t*2+2) = P_Measured;
-    XX(t) = X;
-    tt(t) = t;
-    yy(:,t) = Z_K;
 end
 
 figure
@@ -92,4 +99,4 @@ title(' 1D Kalman Filter')
 legend('Ground Truth','Measured State')
 xlabel('Time')
 ylabel('Position')
-
+figure, plot(MAE)
