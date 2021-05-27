@@ -38,23 +38,6 @@ t = t_vector;
 % Deliverable 3
 clc
 
-X = 0;
-dt = 0.1; % time step
-u = 0.1; %speed/control = 0.1m/s
-
-v = 0.1*randn(1,1001); %R
-v(:,1) =0;
-%Kalman Filter variables
-
-x_measured = [u; X];      %state vector
-A = [1 0; 0.1 1];    %state transition matrix
-P_Measured = [1 0; 0 0.0001];    %std_dev*std_dev = 0.1*0.1 
-Q = [1*10^-8, 0; 0, 0];      %process noise covariance matrix 
-R = 0.01;       %Sensor noise covariance matrix
-H = 1;
-H_k = [1 0; 0 1];
-w = 0.01*randn(1001); %Q
-
 % Storing calculated values in these vectors for plotting
 XX = zeros(1,1001);
 tt = zeros(1,1001);
@@ -63,8 +46,22 @@ xx = zeros(2,1001);
 PP = zeros(2,2002);
 yy = zeros(2,1001);
 AE = zeros(1,1000);
-MAE = zeros(1,1000);
+
 for i = 1:1000
+    X = 0;
+    dt = 0.1; % time step
+    u = 0.1; %speed/control = 0.1m/s
+    
+    %Kalman Filter variables
+    x_measured = [u; X];      %state vector
+    A = [1 0; 0.1 1];    %state transition matrix
+    P_Measured = [1 0; 0 0.0001];    %std_dev*std_dev = 0.1*0.1
+    Q = [1*10^-8, 0; 0, 0];      %process noise covariance matrix
+    R = 0.01;       %Sensor noise covariance matrix
+    H_k = [1 0; 0 1];
+    w = 0.01*randn(1001); %Q
+    w(:,1) =0;
+    
     for t=1:1001
         %simulating the System
         X = X + u*dt + w(t); % New Current State
@@ -80,23 +77,18 @@ for i = 1:1000
         P_Measured = P_Predicted - K * H_k* P_Predicted;       %uncertainity in corrected state
         
         %Saving the outputs
-        
         xx_predicted(:,t) = x_predicted;
         xx(:,t) = x_measured;
         PP(:,t*2+1:t*2+2) = P_Measured;
         XX(t) = X;
         tt(t) = t;
-        yy(:,t) = Z_K;
-        AE(t) = abs(x_vector(t)-xx_predicted(2,t));
+        yy(:,t) = Z_K;        
     end
-    MAE(i) = sum(AE)/numel(AE);
-
+    AE(i,:) = abs(x_vector(t)-xx_predicted(2,t));
 end
 
-figure
-plot(tt,XX,tt,xx(2,:))
-title(' 1D Kalman Filter')
+MAE = sum(AE,1)/i;
+figure, plot(tt,XX,tt,xx(2,:))
+title(' 1D Kalman Filter'), xlabel('Time'), ylabel('Position')
 legend('Ground Truth','Measured State')
-xlabel('Time')
-ylabel('Position')
 figure, plot(MAE)
